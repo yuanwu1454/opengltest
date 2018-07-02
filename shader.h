@@ -61,6 +61,9 @@ public:
 	void setVec1(const char* uniformName, int value) {
 		glUniform1i(glGetUniformLocation(shaderProgram, uniformName), value);
 	}
+	void setFloat(const char* uniformName, float value) {
+		glUniform1f(glGetUniformLocation(shaderProgram, uniformName), value);
+	}
 private:
 	glInt createProgram(glInt vertexShader, glInt fragmentShader) {
 		glInt shaderProgram;

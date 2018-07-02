@@ -110,15 +110,35 @@ int main()
 
 
 	createUniformMVP(programShader);
-	programShader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
-	programShader.setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
+	glm::vec3 lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
+	glm::vec3 objectColor = glm::vec3(1.0f, 0.5f, 0.31f);
+
+	//programShader.setVec3("objectColor", objectColor);
+	//programShader.setVec3("lightColor", lightColor);
 	programShader.setVec3("lightPos", lightPos);
 	programShader.setVec3("viewPos", cameraInst.Position);
 
-	lampShader.use();
+	bool btest = true;
+	if(btest){
+		//programShader.setVec3("material.ambient", 1.0f, 0.5f, 0.31f);
+		//programShader.setVec3("material.diffuse", 1.0f, 0.5f, 0.31f);
+		//programShader.setVec3("material.specular", 0.5f, 0.5f, 0.5f);
+		//programShader.setFloat("material.shininess", 32.0f);
+		programShader.setVec3("material.ambient", 0.0f, 0.1f, 0.06f);
+		programShader.setVec3("material.diffuse", 0.0f, 0.50980392f, 0.50980392f);
+		programShader.setVec3("material.specular", 0.50196078f, 0.50196078f, 0.50196078f);
+		programShader.setFloat("material.shininess", 32.0f);
+	}
+	else {
+		programShader.setVec3("material.ambient", 1.0f, 1.0f, 1.0f);
+		programShader.setVec3("material.diffuse", 1.0f, 1.0f, 1.0f);
+		programShader.setVec3("material.specular", 1.0f, 1.0f, 1.0f);
+		programShader.setFloat("material.shininess", 32.0f);
+	}
 
-	lampShader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
-	lampShader.setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
+	lampShader.use();
+	lampShader.setVec3("objectColor", objectColor);
+	lampShader.setVec3("lightColor", lightColor);
 
 	createUniformMVP(lampShader);
 	//glm::mat4 model;
@@ -149,8 +169,12 @@ int main()
 		//激活程序
 		programShader.use();
 		programShader.setVec3("viewPos", cameraInst.Position);
-		lightPos.x = 4 * sin((float)glfwGetTime());
+		//lightPos.x = 4 * sin((float)glfwGetTime());
 		programShader.setVec3("lightPos", lightPos);
+
+		programShader.setVec3("light.ambient", 1.0f, 1.0f, 1.0f);
+		programShader.setVec3("light.diffuse", 1.0f, 1.0f, 1.0f); // 将光照调暗了一些以搭配场景
+		programShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
 
 		glBindVertexArray(VAOs[0]);
 		for (unsigned int i = 0; i < 10; i++)
@@ -160,6 +184,15 @@ int main()
 			if ((((i+1) % 3) != 0) && (i != 0)) {
 				angle = 0;
 			}
+			//glm::vec3 lightColor;
+			//lightColor.x = sin(glfwGetTime() * (2.0f + i));
+			//lightColor.y = sin(glfwGetTime() * (0.7f + i));
+			//lightColor.z = sin(glfwGetTime() * (1.3f + i));
+			//glm::vec3 diffuseColor = lightColor   * glm::vec3(0.5f); // 降低影响
+			//glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f); // 很低的影响
+
+			//programShader.setVec3("light.ambient", ambientColor);
+			//programShader.setVec3("light.diffuse", diffuseColor);
 
 			model = glm::translate(model, cubePositions[i]);
 			model = glm::rotate(model, (float)glfwGetTime() * glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
