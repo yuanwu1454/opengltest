@@ -13,7 +13,7 @@ uniform vec3 lightColor;
 uniform vec3 objectColor;
 
 out vec3 ourColor;
-out vec2 TexCoord;
+out vec2 TexCoords;
 out vec3 Normal;
 out vec3 FragPos;
 out vec3 normalPosInView;
@@ -27,7 +27,7 @@ void main()
 	gl_Position = projection * view * model * vec4(aPos, 1.0f);
 	ourColor = aColor;
 	//Normal = vec3( projection * view * model * vec4(aNormal, 1.0));
-	TexCoord = vec2(aTexCoord.x, aTexCoord.y);
+	TexCoords = vec2(aTexCoord.x, aTexCoord.y);
 
 	//worldPos
 	Normal = mat3(transpose(inverse(model))) * aNormal;

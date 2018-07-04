@@ -2,6 +2,7 @@
 #include "test.h"
 
 void processInput(GLFWwindow *window);
+static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods);
 
 void createUniformWithMatrix(glInt shaderProgram, const char* name) {
 	glm::mat4 trans;
@@ -60,6 +61,12 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 Camera cameraInst;
 Shader programShader, lampShader;
 glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+
+float ambientlight[3] = { 0.1f, 0.3f, 0.4f };
+float diffuselight[3] = { 0.5f, 0.6f, 0.7f };
+float specularlight[3] = { 0.2f, 0.8f, 0.9f };
+float *curlight = ambientlight;
+string lastlight = "ambientlight";
 int main()
 {
 	foo(3);
@@ -70,6 +77,8 @@ int main()
 	}
 	glfwSetCursorPosCallback(window, mouse_callback);
 	glfwSetScrollCallback(window, scroll_callback);
+	glfwSetKeyCallback(window, key_callback);
+
 	glEnable(GL_DEPTH_TEST);
 
 	programShader = Shader("texture.vs", "texture.fs");
@@ -82,18 +91,26 @@ int main()
 	programShader.use();
 
 	//generateTexture() begin
-	string name[] = { "container.jpg", "awesomeface.png" };
-	int n = 2;
-	int textureID[2] = { 0, 0 };
-	string preTexture = "texture";
-	string textureName;
+	
+	//string name[] = { "container.jpg", "awesomeface.png" };
+	//string textureName[] = { "material.diffuse1", "material.diffuse2" };
+	//int n = 2;
+	//int textureID[2] = { 0, 0 };
+	//for (int i = 0; i < n; i++) {
+	//	programShader.setVec1(textureName[i].c_str(), i);
+	//}
+	//createTexture(name, textureID, n);
+	
+
+	string name[] = { "container2.png", "lighting_maps_specular_color.png", "matrix.jpg" };
+	string textureName[] = {"material.diffuse", "material.specular", "material.diffuse2" };
+	int n = 3;
+	int textureID[] = {0, 0, 0};
 	for (int i = 0; i < n; i++) {
-		textureName = preTexture + std::to_string(i + 1);
-		programShader.setVec1(textureName.c_str(), i);
+		programShader.setVec1(textureName[i].c_str(), i);
 	}
-	createTexture(name, textureID, 2);
-
-
+	createTexture(name, textureID, n);
+	
 	glm::vec3 cubePositions[] = {
 		glm::vec3(0.0f,  0.0f,  0.0f),
 		glm::vec3(2.0f,  5.0f, -15.0f),
@@ -124,14 +141,14 @@ int main()
 		//programShader.setVec3("material.diffuse", 1.0f, 0.5f, 0.31f);
 		//programShader.setVec3("material.specular", 0.5f, 0.5f, 0.5f);
 		//programShader.setFloat("material.shininess", 32.0f);
-		programShader.setVec3("material.ambient", 0.0f, 0.1f, 0.06f);
-		programShader.setVec3("material.diffuse", 0.0f, 0.50980392f, 0.50980392f);
+		//programShader.setVec3("material.ambient", 0.0f, 0.1f, 0.06f);
+		//programShader.setVec3("material.diffuse", 0.0f, 0.50980392f, 0.50980392f);
 		programShader.setVec3("material.specular", 0.50196078f, 0.50196078f, 0.50196078f);
 		programShader.setFloat("material.shininess", 32.0f);
 	}
 	else {
-		programShader.setVec3("material.ambient", 1.0f, 1.0f, 1.0f);
-		programShader.setVec3("material.diffuse", 1.0f, 1.0f, 1.0f);
+		//programShader.setVec3("material.ambient", 1.0f, 1.0f, 1.0f);
+		//programShader.setVec3("material.diffuse", 1.0f, 1.0f, 1.0f);
 		programShader.setVec3("material.specular", 1.0f, 1.0f, 1.0f);
 		programShader.setFloat("material.shininess", 32.0f);
 	}
@@ -161,7 +178,7 @@ int main()
 		lastFrame = currentFrame;
 
 		processInput(window);
-		glClearColor(0.3f, 0.5f, 0.2f, 1.0f);
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		view = cameraInst.GetViewMatrix();
@@ -171,10 +188,10 @@ int main()
 		programShader.setVec3("viewPos", cameraInst.Position);
 		//lightPos.x = 4 * sin((float)glfwGetTime());
 		programShader.setVec3("lightPos", lightPos);
-
-		programShader.setVec3("light.ambient", 1.0f, 1.0f, 1.0f);
-		programShader.setVec3("light.diffuse", 1.0f, 1.0f, 1.0f); // 将光照调暗了一些以搭配场景
-		programShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
+		
+		programShader.setVec3("light.ambient", ambientlight[0], ambientlight[1], ambientlight[2]);
+		programShader.setVec3("light.diffuse", diffuselight[0], diffuselight[1], diffuselight[2]); // 将光照调暗了一些以搭配场景
+		programShader.setVec3("light.specular", specularlight[0], specularlight[1], specularlight[2]);
 
 		glBindVertexArray(VAOs[0]);
 		for (unsigned int i = 0; i < 10; i++)
@@ -224,6 +241,43 @@ int main()
 	// end
 	glfwTerminate();
 	return 0;
+}
+bool checkValid(int action) {
+	return action == GLFW_REPEAT || action == GLFW_PRESS;
+}
+static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
+{
+	
+	if (key == GLFW_KEY_Z) {
+		curlight = ambientlight;
+		lastlight = "ambientlight";
+	}
+	else if (key == GLFW_KEY_X) {
+		curlight = diffuselight;
+		lastlight = "diffuselight";
+	}
+	else if (key == GLFW_KEY_C) {
+		curlight = specularlight;
+		lastlight = "specularlight";
+	}
+	if ((key == GLFW_KEY_1 || key == GLFW_KEY_2 || key == GLFW_KEY_3 ) && (checkValid(action)))
+	{
+		//if (action == GLFW_PRESS) {
+
+		//}
+		if (mods == GLFW_MOD_SHIFT) {
+			*(key - GLFW_KEY_1 + curlight) = *(key - GLFW_KEY_1 + curlight) - 0.01f;
+		}
+		else if (mods == GLFW_MOD_CONTROL) {
+			*(key - GLFW_KEY_1 + curlight) = *(key - GLFW_KEY_1 + curlight) + 0.01f;
+		}
+		//std::cout << *(key - GLFW_KEY_1 + curlight) << std::endl;
+	}
+
+	if ((key == GLFW_KEY_1 || key == GLFW_KEY_2 || key == GLFW_KEY_3) && (action == GLFW_RELEASE))
+	{
+		std::cout << lastlight << "  "<< *(curlight) << "  "<< *(curlight + 1) << "  " << *(curlight + 2) << std::endl;
+	}
 }
 
 void processInput(GLFWwindow *window)
