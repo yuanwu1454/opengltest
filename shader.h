@@ -20,7 +20,7 @@ void getFileString(const char* fileName, std::string* vertexCode) {
 		vShaderFile.close();
 		// 转换数据流到string
 		*vertexCode = vShaderStream.str();
-		std::cout << (*vertexCode).c_str() << std::endl;
+		//std::cout << (*vertexCode).c_str() << std::endl;
 	}
 	catch (std::ifstream::failure e)
 	{

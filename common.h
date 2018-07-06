@@ -4,14 +4,17 @@ typedef unsigned int glInt;
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
+#include <vector>
 #include <sstream>
 #include <fstream>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <utility>
 
 #include "camera.h"
 #include "shader.h"
+#include "uniform.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -82,8 +85,8 @@ bool initCreateWindow(GLFWwindow** window) {
 	glfwSetInputMode(*window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	return true;
 }
-
-void createTexture(string textureName[], int textureId[], int n) {
+void createTexture(vector<string> textureName, vector<int> textureId) {
+	int n = textureName.size();
 	for (int i = 0; i < n; i++) {
 		textureId[i] = generateTexture(textureName[i].c_str());
 	}
@@ -92,6 +95,19 @@ void createTexture(string textureName[], int textureId[], int n) {
 		glBindTexture(GL_TEXTURE_2D, textureId[i]);
 	}
 }
+void createTexture(Shader programShader) {
+	programShader.use();
+	vector<string> name{ "container2.png", "lighting_maps_specular_color.png" };
+	vector<string> textureName{ "material.diffuse", "material.specular" };
+	int n = name.size();
+	vector<int> textureID(n, 0);
+	for (int i = 0; i < n; i++) {
+		programShader.setVec1(textureName[i].c_str(), i);
+	}
+	createTexture(name, textureID);
+}
+
+
 
 //glInt createVerticesWithElements(glInt VAO, float* vertices, glInt *indices) {
 
@@ -250,23 +266,28 @@ glInt createVerticesWithArrays(glInt VAO, glInt* VBO) {
 	return VAO;
 }
 
+void useUniformMVP(Shader shaderProgram, glm::mat4 model, glm::mat4 view, glm::mat4 projection) {
+	shaderProgram.setMat4("model", model);
+	shaderProgram.setMat4("view", view);
+	shaderProgram.setMat4("projection", projection);
+}
 
 void createUniformMVP(Shader shaderProgram)
 {
 	glm::mat4 model;
 	model = glm::rotate(model, (float)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
-	shaderProgram.setMat4("model", model);
-//	glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
-
 
 	// 注意，我们将矩阵向我们要进行移动场景的反方向移动。
 	glm::mat4 view;
 	view = glm::translate(view, glm::vec3(0.0f, 0.0f, -5.0f));
-	shaderProgram.setMat4("view", view);
-	//glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
 
 	glm::mat4 projection;
 	projection = glm::perspective(glm::radians(45.0f), ((float)SCR_WIDTH / (float)SCR_HEIGHT), 0.1f, 100.0f);
-	shaderProgram.setMat4("projection", projection);
-	//glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+
+	useUniformMVP(shaderProgram, model, view, projection);
+}
+
+
+glm::vec3 aToVec3(float v[]) {
+	return glm::vec3(v[0], v[1], v[2]);
 }
