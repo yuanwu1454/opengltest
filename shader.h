@@ -20,7 +20,7 @@ void getFileString(const char* fileName, std::string* vertexCode) {
 		vShaderFile.close();
 		// 转换数据流到string
 		*vertexCode = vShaderStream.str();
-		std::cout << (*vertexCode).c_str() << std::endl;
+		//std::cout << (*vertexCode).c_str() << std::endl;
 	}
 	catch (std::ifstream::failure e)
 	{
@@ -60,6 +60,9 @@ public:
 
 	void setVec1(const char* uniformName, int value) {
 		glUniform1i(glGetUniformLocation(shaderProgram, uniformName), value);
+	}
+	void setFloat(const char* uniformName, float value) {
+		glUniform1f(glGetUniformLocation(shaderProgram, uniformName), value);
 	}
 private:
 	glInt createProgram(glInt vertexShader, glInt fragmentShader) {
