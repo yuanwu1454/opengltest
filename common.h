@@ -67,16 +67,19 @@ void createTexture(vector<string> textureName, vector<int> textureId) {
 		glBindTexture(GL_TEXTURE_2D, textureId[i]);
 	}
 }
-void createTexture(Shader programShader) {
+void createTexture(Shader programShader, vector<string> name, vector<string> textureName) {
 	programShader.use();
-	vector<string> name{ "container2.png", "container2_specular.png" };
-	vector<string> textureName{ "material.diffuse", "material.specular" };
 	int n = name.size();
 	vector<int> textureID(n, 0);
 	for (int i = 0; i < n; i++) {
-		programShader.setVec1(textureName[i].c_str(), i);
+		textureID[i] = generateTexture(name[i].c_str());
 	}
-	createTexture(name, textureID);
+
+	for (int i = 0; i < n; i++) {
+		programShader.setVec1(textureName[i].c_str(), i);
+		glActiveTexture(GL_TEXTURE0 + i);
+		glBindTexture(GL_TEXTURE_2D, textureID[i]);
+	}
 }
 
 glInt createVerticesWithElements(glInt VAO) {

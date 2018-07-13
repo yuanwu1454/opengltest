@@ -36,12 +36,14 @@ public:
 	Shader()
 	{
 	}
+
 	Shader(const char* vertexSourceName, const char* fragmentShaderName)
 	{
 		vertexShader = createShader(GL_VERTEX_SHADER, vertexSourceName);
 		fragmentShader = createShader(GL_FRAGMENT_SHADER, fragmentShaderName);
 		shaderProgram = createProgram(vertexShader, fragmentShader);
 	}
+
 	void use() 
 	{
 		glUseProgram(shaderProgram);

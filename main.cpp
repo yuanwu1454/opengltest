@@ -34,6 +34,9 @@ void doAssimpShader(glm::mat4& view, glm::mat4& projection);
 void initStencilShader(glm::vec3 objectColor, glm::vec3 lightColor);
 void doStencilShader(glm::mat4& view, glm::mat4& projection);
 
+void doShaderWithVAO(glm::mat4& view, glm::mat4& projection, string shaderName);
+void doStencilTest(glm::mat4& view, glm::mat4& projection);
+
 Camera cameraInst;
 Shader programShader, lampShader, assimpShader, stencilShader;
 Uniform dirlight, material, pointLights[4];
@@ -52,7 +55,7 @@ glm::vec3 pointLightsPosition[4] = {
 	glm::vec3(.0f,  0.0f,  5.0f),
 	glm::vec3(1.0f,  0.0f,  1.0f)
 };
-
+glInt VAOs[2];
 bool bAssimp = false;
 int main()
 {
@@ -84,24 +87,19 @@ int main()
 	//光照
 	glm::vec3 lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
 	glm::vec3 objectColor = glm::vec3(1.0f, 1.0f, 1.0f);
-	if (bAssimp) {
-		initAssimpShader(lightColor, objectColor);
-	}
-	else {
-		initProgramShader(lightColor, objectColor);
-	}
+	initAssimpShader(lightColor, objectColor);
+	initProgramShader(lightColor, objectColor);
 	initLampShader(lightColor, objectColor);
 	initStencilShader(lightColor, objectColor);
 	cameraInst = Camera();
 	dirlight = Uniform();
 	
 	//顶点
-	glInt VAOs[2], VBO[2];
+	glInt VBO[2];
 	VAOs[0] = createVerticesWithArrays(VAOs[0], &VBO[0]);
 	programShader.setFloat("material.shininess", 32.0f);
 	assimpShader.setFloat("material.shininess", 32.0f);
 	glm::mat4 view, projection;
-	
 
 	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);//这个只是用来进行测试的函数不是用来写入模版缓冲的函数
 	while (!glfwWindowShouldClose(window))
@@ -114,35 +112,9 @@ int main()
 		view = cameraInst.GetViewMatrix();
 		projection = glm::perspective(glm::radians(cameraInst.Zoom), aspectRatio, 0.1f, 100.0f);
 
-		//if (bAssimp) {
-		//	doAssimpShader(view, projection);
-		//}
-		//else {
-		//	glBindVertexArray(VAOs[0]);
-		//	doProgramShader(view, projection);
-		//	glBindVertexArray(0);
-		//}
-		//glStencilMask(0xFF);
-
-
-		glStencilFunc(GL_ALWAYS, 1, 0xFF); 
-		//当测试通过的时候 才会用来进行写入模版缓冲的函数
-		glStencilMask(0xFF); //启用模版写入
-		//这个函数是用来对写入的模版缓冲进行限制的函数
-		glBindVertexArray(VAOs[0]);
-		doLampShader(view, projection);
-		glBindVertexArray(0);
-
-		glDisable(GL_DEPTH_TEST); //禁用深度测试
-		glStencilFunc(GL_NOTEQUAL, 1, 0xFF); //没有通过模版测试 则片段会被丢弃
-		glStencilMask(0x0); //禁用模版写入
-
-		glBindVertexArray(VAOs[0]);
-		doStencilShader(view, projection);
-		glBindVertexArray(0);
-		
-		glStencilMask(0xFF);
-		glEnable(GL_DEPTH_TEST);
+		doAssimpShader(view, projection);
+		//doShaderWithVAO(view, projection, "Program");
+		//doStencilTest(view, projection);
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
@@ -365,17 +337,10 @@ void doStencilShader(glm::mat4& view, glm::mat4& projection) {
 void initProgramShader(glm::vec3 objectColor, glm::vec3 lightColor) {
 	programShader = Shader("texture.vs", "texture.fs");
 	programShader.use();
-	//vector<string> name{ "container2.png", "container2_specular.png" };
-	//int n = name.size();
-	//for (int i = 0; i < n; i++) {
-	//	Uniform uniformTex = Uniform();
-	//	programShader.setVec1(textureName[i].c_str(), i);
-	//}
-	createTexture(programShader);	//纹理
-	//Uniform uniformTex = Uniform();
-	//uniformTex.bind(programShader, "material");
-
-	createUniformMVP(programShader);	//变换
+	vector<string> name{ "container2.png", "container2_specular.png" };
+	vector<string> textureName{ "material.diffuse", "material.specular" };
+	createTexture(programShader, name, textureName);
+	createUniformMVP(programShader);
 }
 
 bool bStatic = true;
@@ -393,6 +358,7 @@ vector<glm::vec3> cubePositions = {
 };
 
 void doProgramShader(glm::mat4& view, glm::mat4& projection) {
+
 	//激活程序
 	programShader.use();
 	programShader.setVec3("viewPos", cameraInst.Position);
@@ -453,4 +419,34 @@ void doAssimpShader(glm::mat4& view, glm::mat4& projection) {
 	useUniformMVP(assimpShader, model, view, projection);
 	assimpShader.use();
 	assimpModel.Draw(assimpShader);
+}
+
+void doShaderWithVAO(glm::mat4& view, glm::mat4& projection, string shaderName) {
+	glBindVertexArray(VAOs[0]);
+	if (shaderName.compare("Program") == 0) {
+		doProgramShader(view, projection);
+	}
+	else if (shaderName.compare("Stencil") == 0) {
+		doStencilShader(view, projection);
+	}
+	else if (shaderName.compare("Lamp") == 0) {
+		doLampShader(view, projection);
+	}
+	glBindVertexArray(0);
+}
+
+void doStencilTest(glm::mat4& view, glm::mat4& projection) {
+	glStencilFunc(GL_ALWAYS, 1, 0xFF);
+	//当测试通过的时候 才会用来进行写入模版缓冲的函数
+	glStencilMask(0xFF); //启用模版写入
+						 //这个函数是用来对写入的模版缓冲进行限制的函数
+	doShaderWithVAO(view, projection, "Lamp");
+	glDisable(GL_DEPTH_TEST); //禁用深度测试
+	glStencilFunc(GL_NOTEQUAL, 1, 0xFF); //没有通过模版测试 则片段会被丢弃
+	glStencilMask(0x0); //禁用模版写入
+
+	doShaderWithVAO(view, projection, "Stencil");
+
+	glStencilMask(0xFF);
+	glEnable(GL_DEPTH_TEST);
 }

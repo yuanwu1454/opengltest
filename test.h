@@ -25,4 +25,5 @@ void foo(int x) {
 	//v1(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec2(1.0f, 1.0f));
 	//printf("%d", sizeof(v));
 }
+
 #endif
