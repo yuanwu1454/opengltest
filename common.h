@@ -13,55 +13,25 @@ typedef unsigned int glInt;
 #include <utility>
 #include <set>
 #include <map>
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
+using namespace std;
+#include "texture.h"
 #include "camera.h"
 #include "shader.h"
 #include "uniform.h"
+#include "mesh.h"
+#include "model.h"
+#include "test.h"
 
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
-using namespace std;
+
 
 const glInt SCR_WIDTH = 800;
 const glInt SCR_HEIGHT = 600;
-
-
-glInt generateTexture(const char* resName) {
-	glInt textureId;
-	glGenTextures(1, &textureId);
-	glBindTexture(GL_TEXTURE_2D, textureId);
-	// 为当前绑定的纹理对象设置环绕、过滤方式
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	// 加载并生成纹理
-	int width, height, nrChannels;
-	unsigned char *data = stbi_load(resName, &width, &height, &nrChannels, 0);
-	std::string fileExtension;
-
-	string filename = resName;
-	size_t pos = filename.find_last_of('.');
-	if (pos != std::string::npos)
-	{
-		fileExtension = filename.substr(pos, filename.length());
-	}
-	glInt rgb = GL_RGB;
-	if (fileExtension == ".png") {
-		rgb = GL_RGBA;
-	}
-
-	if (data)
-	{
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, rgb, GL_UNSIGNED_BYTE, data);
-		glGenerateMipmap(GL_TEXTURE_2D);
-	}
-	else
-	{
-		std::cout << "Failed to load texture" << std::endl;
-	}
-	stbi_image_free(data);
-	return textureId;
-}
 
 bool initCreateWindow(GLFWwindow** window) {
 	glfwInit();
@@ -86,6 +56,7 @@ bool initCreateWindow(GLFWwindow** window) {
 	glfwSetInputMode(*window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	return true;
 }
+
 void createTexture(vector<string> textureName, vector<int> textureId) {
 	int n = textureName.size();
 	for (int i = 0; i < n; i++) {
@@ -107,10 +78,6 @@ void createTexture(Shader programShader) {
 	}
 	createTexture(name, textureID);
 }
-
-
-
-//glInt createVerticesWithElements(glInt VAO, float* vertices, glInt *indices) {
 
 glInt createVerticesWithElements(glInt VAO) {
 	glInt VBO, EBO;
@@ -291,4 +258,18 @@ void createUniformMVP(Shader shaderProgram)
 
 glm::vec3 aToVec3(float v[]) {
 	return glm::vec3(v[0], v[1], v[2]);
+}
+
+void printMat44(glm::mat4& model) {
+	printf("begin;\n");
+	printf("%f, %f, %f, %f\n", model[0][1], model[0][1], model[0][2], model[0][3]);
+	printf("%f, %f, %f, %f\n", model[1][1], model[1][1], model[1][2], model[1][3]);
+	printf("%f, %f, %f, %f\n", model[2][1], model[2][1], model[2][2], model[2][3]);
+	printf("%f, %f, %f, %f\n", model[3][1], model[3][1], model[3][2], model[3][3]);
+	printf("end;  \n");
+}
+void printVec3(glm::vec3& model) {
+	printf("begin;\n");
+	printf("%f, %f, %f\n", model[0], model[1], model[2]);
+	printf("end;  \n");
 }
