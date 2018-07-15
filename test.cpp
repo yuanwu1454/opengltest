@@ -1,5 +1,5 @@
-#include "test.h"
-int foo(int x)
-{
-	return x;
-}
+//#include "test.h"
+//int foo(int x)
+//{
+//	return x;
+//}

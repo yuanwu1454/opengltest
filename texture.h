@@ -1,17 +1,24 @@
 #ifndef TEXTURE_H
 #define TEXTURE_H
 
-glInt generateTexture(const char* resName) {
+glInt generateTexture(const char* resName, bool alpha = false) {
 	glInt textureId;
 	glGenTextures(1, &textureId);
 	glBindTexture(GL_TEXTURE_2D, textureId);
 	// 为当前绑定的纹理对象设置环绕、过滤方式
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	if (alpha) {
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	}
+	else {
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	}
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	// 加载并生成纹理
 	int width, height, nrChannels;
+	stbi_set_flip_vertically_on_load(true); //翻转y轴
 	unsigned char *data = stbi_load(resName, &width, &height, &nrChannels, 0);
 	std::string fileExtension;
 
@@ -25,10 +32,14 @@ glInt generateTexture(const char* resName) {
 	if (fileExtension == ".png") {
 		rgb = GL_RGBA;
 	}
+	glInt modAlpha = GL_RGB;
+	if (alpha) {
+		modAlpha = GL_RGBA;
+	}
 
 	if (data)
 	{
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, rgb, GL_UNSIGNED_BYTE, data);
+		glTexImage2D(GL_TEXTURE_2D, 0, modAlpha, width, height, 0, rgb, GL_UNSIGNED_BYTE, data);
 		glGenerateMipmap(GL_TEXTURE_2D);
 	}
 	else

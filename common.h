@@ -26,6 +26,7 @@ using namespace std;
 #include "uniform.h"
 #include "mesh.h"
 #include "model.h"
+#include "controller.h"
 #include "test.h"
 
 
@@ -67,12 +68,12 @@ void createTexture(vector<string> textureName, vector<int> textureId) {
 		glBindTexture(GL_TEXTURE_2D, textureId[i]);
 	}
 }
-void createTexture(Shader programShader, vector<string> name, vector<string> textureName) {
+void createTexture(Shader programShader, vector<string> name, vector<string> textureName, bool balpha = false) {
 	programShader.use();
 	int n = name.size();
 	vector<int> textureID(n, 0);
 	for (int i = 0; i < n; i++) {
-		textureID[i] = generateTexture(name[i].c_str());
+		textureID[i] = generateTexture(name[i].c_str(), balpha);
 	}
 
 	for (int i = 0; i < n; i++) {
@@ -275,4 +276,10 @@ void printVec3(glm::vec3& model) {
 	printf("begin;\n");
 	printf("%f, %f, %f\n", model[0], model[1], model[2]);
 	printf("end;  \n");
+}
+
+void initShader(Shader iShader, const char* vs, const char* fs) {
+	iShader = Shader(vs, fs);
+	iShader.use();
+	createUniformMVP(iShader);
 }

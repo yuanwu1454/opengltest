@@ -1,5 +1,19 @@
 #ifndef CAMERA_H
 #define CAMERA_H
+
+
+float deltaTime = 0.0f; // 当前帧与上一帧的时间差
+float lastFrame = 0.0f; // 上一帧的时间
+float fov = 45.0f;
+float aspectRatio = 1.33f;
+float viewLength = 0.0f;
+float viewHor = 0.0f;
+float radius = 10.0f;
+
+bool firstMouse = true;
+double lastX, lastY;
+float pitch = 0.0f, yaw = -90.0f;
+
 enum Camera_Movement
 {
 	FORWARD,
@@ -104,6 +118,18 @@ public:
 		updateCameraVectors();
 	}
 	
+	void preProcessMouseMovement(double xpos, double ypos) {
+		if (firstMouse) {
+			firstMouse = false;
+			lastX = xpos;
+			lastY = ypos;
+		}
+		float offsetX = lastX - xpos;
+		float offsetY = ypos - lastY;
+		lastX = xpos;
+		lastY = ypos;
+		ProcessMouseMovement(offsetX, offsetY);
+	}
 	// Processes input received from a mouse input system. Expects the offset value in both the x and y direction.
 	void ProcessMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch = true)
 	{
@@ -174,4 +200,7 @@ private:
 		Up = glm::normalize(glm::cross(Right, Front));
 	}
 };
+
+static Camera cameraInst = Camera();;
+
 #endif CAMERA_H
