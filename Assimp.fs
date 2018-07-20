@@ -5,6 +5,7 @@ in vec2 TexCoords;	//纹理坐标
 in vec3 Normal;		//法线
 in vec3 FragPos;	//片段位置
 
+uniform samplerCube skybox;
 uniform vec3 objectColor;	//物体颜色
 uniform vec3 lightColor;	//光照颜色
 uniform vec3 lightPos;		//光的位置
@@ -17,6 +18,10 @@ struct Material {
 	sampler2D texture_diffuse1;
 	//镜面光 与镜面材质 则是另外一组相关参数
 	sampler2D texture_specular1;
+
+	//环境材质 最新的模型中包含这个 立方体贴图中
+	sampler2D texture_ambient1;
+
 	float shininess;	//反光度  主要作用于 镜面反射
 };
 uniform Material material; //被照物体材质
@@ -44,17 +49,89 @@ struct DirLight
 
 uniform DirLight dirLight;
 vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir) {
+
+
+	//反射
+		vec3 R = reflect(-viewDir, normal); //反射
+	//折射
+	//	float ratio = 1.00 / 1.52;
+	//	vec3 R = refract(-viewDir, normalize(Normal), ratio); 
+	vec3 sky = texture(skybox, R).rgb;
+	//	FragColor = vec4(texture(skybox, R).rgb + result, 1.0);
+
+	//FragColor = vec4(result, 1.0);
+
 	vec3 lightDir = normalize(-light.direction);
 	float diff = max(dot(normal, lightDir), 0.0);
 	vec3 reflectDir = reflect(-lightDir, normal);
 	float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
 
 	//未使用光的颜色 使用的是纹理数据来显示
-	vec3 ambient = light.ambient  * vec3(texture(material.texture_diffuse1, TexCoords));
+	//vec3 ambient = light.ambient  * vec3(texture(material.texture_ambient1, TexCoords));
+	vec3 ambient = vec3(texture(material.texture_ambient1, TexCoords));
+	//vec3 ambientColor = vec3(texture(material.texture_ambient1, TexCoords));
+	//vec3 ambient = vec3(light.ambient.x * ambientColor.x, light.ambient.y * ambientColor.y, light.ambient.z * ambientColor.z);
 	vec3 diffuse = light.diffuse  * diff * vec3(texture(material.texture_diffuse1, TexCoords));
+	//vec3 diffuse = light.diffuse  * diff * vec3(texture(skybox, R));
+	//vec3 specular = light.specular * spec * vec3(texture(material.texture_specular1, TexCoords));
+	vec3 specular = light.specular  * spec * vec3(texture(skybox, R));
+
+	//return (ambient + diffuse + specular + vec3(0.0));
+	//diffuse = vec3(1, 1, 1);
+	//return sky + vec3(0.1);
+	//return vec3(diffuse.x*sky.r, diffuse.y*sky.g, diffuse.z*sky.b);
+	//return diffuse;
+	return ambient + diffuse + specular;
+	//return vec3(0.0);
+}
+
+vec4 CalcCubeLight(DirLight light, vec3 normal, vec3 viewDir) {
+
+
+	//反射
+	vec3 R = reflect(-viewDir, normal); //反射
+										//折射
+										//	float ratio = 1.00 / 1.52;
+										//	vec3 R = refract(-viewDir, normalize(Normal), ratio); 
+	//vec4 sky = texture(skybox, R);
+
+	vec3 lightDir = normalize(-light.direction);
+	float diff = max(dot(normal, lightDir), 0.0);
+	vec3 reflectDir = reflect(-lightDir, normal);
+	float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+
+	//未使用光的颜色 使用的是纹理数据来显示
+	vec3 ambient = light.ambient  * vec3(texture(material.texture_ambient1, TexCoords));
+	//vec3 ambient = vec3(texture(material.texture_ambient1, TexCoords));
+	//vec3 ambientColor = vec3(texture(material.texture_ambient1, TexCoords));
+	//vec3 ambient = vec3(light.ambient.x * ambientColor.x, light.ambient.y * ambientColor.y, light.ambient.z * ambientColor.z);
+	vec3 diffuse = light.diffuse  * diff * vec3(texture(material.texture_diffuse1, TexCoords));
+	//vec3 diffuse = light.diffuse  * diff * vec3(texture(skybox, R));
 	vec3 specular = light.specular * spec * vec3(texture(material.texture_specular1, TexCoords));
-	//return ambient;
-	return (ambient + diffuse + specular);
+	//vec3 specular = light.specular  * spec * vec3(texture(skybox, R));
+	
+	//float reflect_intensity = texture(material.texture_specular1, TexCoords).r;
+	//vec4 reflect_color;
+	//if (reflect_intensity > 0.1) // Only sample reflections when above a certain treshold
+	//	reflect_color = texture(skybox, R) * reflect_intensity;
+
+	//return (ambient + diffuse + specular + vec3(0.0));
+	//diffuse = vec3(1, 1, 1);
+	//return sky + vec3(0.1);
+	//return vec3(diffuse.x*sky.r, diffuse.y*sky.g, diffuse.z*sky.b);
+	//return diffuse;
+	//return vec3(0.0);
+	//if ambient.r > 0.0 
+
+	vec4 reflect_color = vec4(0.0);
+	vec3 temp = ambient;
+//	if (temp.r > 0.9 && temp.g > 0.1 && temp.b > 0.1) // Only sample reflections when above a certain treshold
+	if (temp.r > 0.1 && temp.g < 0.01 && temp.b < 0.01)
+		reflect_color = texture(skybox, R) ;
+	return vec4(ambient + diffuse + specular, 1.0) + reflect_color;
+	//return vec4(diffuse, 1.0); 
+	//return vec4(ambient, 1.0) + reflect_color + vec4(specular, 1.0) + vec4(diffuse, 0.0);
+	//return reflect_color + vec4(diffuse, 0.0);
 }
 /*
 点光源
@@ -107,8 +184,6 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
 	specular *= attenuation;
 
 	return (ambient + diffuse + specular);
-	//return ambient;
-	//return diffuse;
 }
 
 /*
@@ -167,13 +242,39 @@ void main()
 	vec3 norm = normalize(Normal);
 	vec3 viewDir = normalize(viewPos - FragPos);
 
+
+	//光的使用
+
 	// 第一阶段：定向光照
 	vec3 result = vec3(0.0f, 0.0f, 0.0f);
-	result += clampVec3(CalcDirLight(dirLight, norm, viewDir));
+	FragColor = CalcCubeLight(dirLight, norm, viewDir);
+	//result += clampVec3(CalcDirLight(dirLight, norm, viewDir));
 	// 第二阶段：点光源
-	for (int i = 0; i <NR_POINT_LIGHTS; i++)
-		result += clampVec3(CalcPointLight(pointLights[i], norm, FragPos, viewDir));
+	//for (int i = 0; i <NR_POINT_LIGHTS; i++)
+	//	result += clampVec3(CalcPointLight(pointLights[i], norm, FragPos, viewDir));
 	// 第三阶段：聚光
 	//result += CalcSpotLight(spotLight, norm, FragPos, viewDir);
-	FragColor = vec4(result, 1.0);
+
+
+
+	//反射
+	//vec3 R = reflect(-viewDir, normalize(Normal)); //反射
+	//折射
+//	float ratio = 1.00 / 1.52;
+//	vec3 R = refract(-viewDir, normalize(Normal), ratio); 
+
+	//FragColor = vec4(texture(skybox, R).rgb + result, 1.0);
+
+
+	//// Diffuse
+	//vec4 diffuse_color = texture(material.texture_diffuse1, TexCoords);
+	//// Reflection
+	//vec3 R = reflect(-viewDir, normalize(Normal));
+	//float reflect_intensity = texture(material.texture_specular1, TexCoords).r;
+	//vec4 reflect_color;
+	//if (reflect_intensity > 0.1) // Only sample reflections when above a certain treshold
+	//	reflect_color = texture(skybox, R) * reflect_intensity;
+	//// Combine them
+	//FragColor = diffuse_color + reflect_color;
+	//FragColor = vec4(result, 1.0);
 }

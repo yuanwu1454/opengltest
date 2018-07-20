@@ -28,7 +28,18 @@ using namespace std;
 #include "model.h"
 #include "controller.h"
 #include "test.h"
-
+vector<glm::vec3> cubePositions = {
+	glm::vec3(0.0f,  0.0f,  0.0f),
+	glm::vec3(2.0f,  5.0f, -15.0f),
+	glm::vec3(-1.5f, -2.2f, -2.5f),
+	glm::vec3(-3.8f, -2.0f, -12.3f),
+	glm::vec3(2.4f, -0.4f, -3.5f),
+	glm::vec3(-1.7f,  3.0f, -7.5f),
+	glm::vec3(1.3f, -2.0f, -2.5f),
+	glm::vec3(1.5f,  2.0f, -2.5f),
+	glm::vec3(1.5f,  0.2f, -1.5f),
+	glm::vec3(-1.3f,  1.0f, -1.5f)
+};
 
 
 const glInt SCR_WIDTH = 800;
@@ -82,6 +93,9 @@ void createTexture(Shader programShader, vector<string> name, vector<string> tex
 		glBindTexture(GL_TEXTURE_2D, textureID[i]);
 	}
 }
+void createTextureCache(vector<std::string> strVec) {
+	map<std::string, glInt> textureMap;
+}
 
 glInt createVerticesWithElements(glInt VAO) {
 	glInt VBO, EBO;
@@ -127,30 +141,6 @@ glInt createVerticesWithElements(glInt VAO) {
 	return VAO;
 }
 
-//glInt createVerticesWithArrays(glInt VAO, float sideLength, glm::vec3 originPos) {
-//	glInt VBO;
-//	// positions          // colors           // texture coords
-//	glm::vec3 cubePos[8];
-//	glm::vec3 offsetPos[8] = {
-//		glm::vec3(1.0,1.0,0.0),//A
-//		glm::vec3(1.0,0.0,0.0),//B
-//		glm::vec3(0.0,0.0,0.0),//C
-//		glm::vec3(0.0,1.0,0.0),//D
-//
-//		glm::vec3(1.0,1.0,-1.0),//A'
-//		glm::vec3(1.0,0.0,-1.0),//B'
-//		glm::vec3(0.0,0.0,-1.0),//C'
-//		glm::vec3(0.0,1.0,-1.0),//D'
-//	};
-//	glm::vec3 temp;
-//	for (int i = 0; i < 7; i++) {
-//		cubePos[i] = offsetPos[i] * sideLength + originPos;
-//	}
-//	float vertices2[36 * 8];
-//	for (int i = 0; i < 6; i++) {
-//
-//	}
-//}
 glInt createVerticesWithArrays(glInt VAO, glInt* VBO) {
 //	glInt VBO;
 	// positions          // colors           // texture coords   //normal 
@@ -237,6 +227,106 @@ glInt createVerticesWithArrays(glInt VAO, glInt* VBO) {
 	//glDrawArrays(GL_TRIANGLES, 0, 36);
 	return VAO;
 }
+glInt createFrameBufferVerticesWithArrays(glInt VAO, glInt* VBO) {
+	float vertices[] = { // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
+		// positions   // texCoords
+		-1.0f,  1.0f,  0.0f, 1.0f,
+		-1.0f, -1.0f,  0.0f, 0.0f,
+		1.0f, -1.0f,  1.0f, 0.0f,
+
+		-1.0f,  1.0f,  0.0f, 1.0f,
+		1.0f, -1.0f,  1.0f, 0.0f,
+		1.0f,  1.0f,  1.0f, 1.0f
+	};
+
+	//生成缓存对象
+	glGenBuffers(1, VBO);
+	glGenVertexArrays(1, &VAO);
+
+	//绑定VAO
+	glBindVertexArray(VAO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, *VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), &vertices, GL_STATIC_DRAW);
+
+	int offset = 0;
+	int step = 4;
+	// position attribute
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, step * sizeof(float), (void*)(0 + offset));
+	glEnableVertexAttribArray(0);
+
+	// texture coord attribute
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, step * sizeof(float), (void*)((2 + offset) * sizeof(float)));
+	glEnableVertexAttribArray(1);
+	//glDrawArrays(GL_TRIANGLES, 0, 36);
+	return VAO;
+}
+
+glInt createSkyBoxVerticesWithArrays(glInt VAO, glInt* VBO) {
+	float skyboxVertices[] = {
+		// positions          
+		-1.0f,  1.0f, -1.0f,
+		-1.0f, -1.0f, -1.0f,
+		1.0f, -1.0f, -1.0f,
+		1.0f, -1.0f, -1.0f,
+		1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+
+		-1.0f, -1.0f,  1.0f,
+		-1.0f, -1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f,  1.0f,
+		-1.0f, -1.0f,  1.0f,
+
+		1.0f, -1.0f, -1.0f,
+		1.0f, -1.0f,  1.0f,
+		1.0f,  1.0f,  1.0f,
+		1.0f,  1.0f,  1.0f,
+		1.0f,  1.0f, -1.0f,
+		1.0f, -1.0f, -1.0f,
+
+		-1.0f, -1.0f,  1.0f,
+		-1.0f,  1.0f,  1.0f,
+		1.0f,  1.0f,  1.0f,
+		1.0f,  1.0f,  1.0f,
+		1.0f, -1.0f,  1.0f,
+		-1.0f, -1.0f,  1.0f,
+
+		-1.0f,  1.0f, -1.0f,
+		1.0f,  1.0f, -1.0f,
+		1.0f,  1.0f,  1.0f,
+		1.0f,  1.0f,  1.0f,
+		-1.0f,  1.0f,  1.0f,
+		-1.0f,  1.0f, -1.0f,
+
+		-1.0f, -1.0f, -1.0f,
+		-1.0f, -1.0f,  1.0f,
+		1.0f, -1.0f, -1.0f,
+		1.0f, -1.0f, -1.0f,
+		-1.0f, -1.0f,  1.0f,
+		1.0f, -1.0f,  1.0f
+	};
+	//生成缓存对象
+	glGenBuffers(1, VBO);
+	glGenVertexArrays(1, &VAO);
+
+	//绑定VAO
+	glBindVertexArray(VAO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, *VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
+
+	int offset = 0;
+	int step = 3;
+	// position attribute
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, step * sizeof(float), (void*)(0 + offset));
+	glEnableVertexAttribArray(0);
+	//glDrawArrays(GL_TRIANGLES, 0, 36);
+	return VAO;
+}
+
+
 
 void useUniformMVP(Shader shaderProgram, glm::mat4& model, glm::mat4& view, glm::mat4& projection) {
 	shaderProgram.setMat4("model", model);
@@ -264,22 +354,31 @@ glm::vec3 aToVec3(float v[]) {
 	return glm::vec3(v[0], v[1], v[2]);
 }
 
-void printMat44(glm::mat4& model) {
-	printf("begin;\n");
-	printf("%f, %f, %f, %f\n", model[0][1], model[0][1], model[0][2], model[0][3]);
-	printf("%f, %f, %f, %f\n", model[1][1], model[1][1], model[1][2], model[1][3]);
-	printf("%f, %f, %f, %f\n", model[2][1], model[2][1], model[2][2], model[2][3]);
-	printf("%f, %f, %f, %f\n", model[3][1], model[3][1], model[3][2], model[3][3]);
-	printf("end;  \n");
-}
-void printVec3(glm::vec3& model) {
-	printf("begin;\n");
-	printf("%f, %f, %f\n", model[0], model[1], model[2]);
-	printf("end;  \n");
+Shader* createNewShader(const char* vs, const char* fs) {
+	return new Shader(vs, fs);
 }
 
-void initShader(Shader iShader, const char* vs, const char* fs) {
-	iShader = Shader(vs, fs);
-	iShader.use();
-	createUniformMVP(iShader);
+void cacheAllImage(TextureCache* inst) {
+	vector<std::string> allImage = {
+		"matrix.jpg",
+		"container.jpg",
+		"awesomeface.png",
+		"container2.png",
+		"container2_specular.png",
+		"lighting_maps_specular_color.png",
+		"wall.jpg",
+	};
+
+	vector<string> alphaImage = {
+		"grass.png",
+		"blending_transparent_window.png"
+	};
+
+	for (int i = 0; i < allImage.size(); i++){
+		inst->cacheTexture(allImage[i]);
+	}
+	
+	for (int i = 0; i < alphaImage.size(); i++){
+		inst->cacheTexture(alphaImage[i]);
+	}
 }

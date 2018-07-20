@@ -173,6 +173,7 @@ void main()
 	//result = result * vec3(texture(material.diffuse, TexCoords));
 	//result = vec3(3.0f, 3.0f, 3.0f);
 	FragColor = vec4(result, 1.0);
+	//FragColor = vec4(1.0, 0.0, 0.0, 1.0);
 }
 
 //struct DirLight

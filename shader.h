@@ -43,7 +43,11 @@ public:
 		fragmentShader = createShader(GL_FRAGMENT_SHADER, fragmentShaderName);
 		shaderProgram = createProgram(vertexShader, fragmentShader);
 	}
-
+	void initShader(const char* vertexSourceName, const char* fragmentShaderName) {
+		vertexShader = createShader(GL_VERTEX_SHADER, vertexSourceName);
+		fragmentShader = createShader(GL_FRAGMENT_SHADER, fragmentShaderName);
+		shaderProgram = createProgram(vertexShader, fragmentShader);
+	}
 	void use() 
 	{
 		glUseProgram(shaderProgram);
@@ -61,6 +65,9 @@ public:
 	}
 
 	void setVec1(const char* uniformName, int value) {
+		glUniform1i(glGetUniformLocation(shaderProgram, uniformName), value);
+	}
+	void setInt(const char* uniformName, int value) {
 		glUniform1i(glGetUniformLocation(shaderProgram, uniformName), value);
 	}
 	void setFloat(const char* uniformName, float value) {
