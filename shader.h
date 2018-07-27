@@ -32,26 +32,25 @@ class Shader {
 public:
 	glInt vertexShader;
 	glInt fragmentShader;
+	glInt geometryShader;
 	glInt shaderProgram;
 	Shader()
 	{
 	}
 
-	Shader(const char* vertexSourceName, const char* fragmentShaderName)
-	{
+	void initShader(const char* vertexSourceName, const char* fragmentShaderName, const char* geometryShaderName = "") {
 		vertexShader = createShader(GL_VERTEX_SHADER, vertexSourceName);
 		fragmentShader = createShader(GL_FRAGMENT_SHADER, fragmentShaderName);
-		shaderProgram = createProgram(vertexShader, fragmentShader);
+		geometryShader = createShader(GL_GEOMETRY_SHADER, geometryShaderName);
+		shaderProgram = createProgram();
 	}
-	void initShader(const char* vertexSourceName, const char* fragmentShaderName) {
-		vertexShader = createShader(GL_VERTEX_SHADER, vertexSourceName);
-		fragmentShader = createShader(GL_FRAGMENT_SHADER, fragmentShaderName);
-		shaderProgram = createProgram(vertexShader, fragmentShader);
-	}
+
 	void use() 
 	{
 		glUseProgram(shaderProgram);
 	}
+
+	//set 操作之前都一定要先调用对应的glUseProgram
 	void setVec3(const char* uniformName, glm::vec3 &value) {
 		glUniform3fv(glGetUniformLocation(shaderProgram, uniformName), 1, glm::value_ptr(value));
 	}
@@ -73,12 +72,19 @@ public:
 	void setFloat(const char* uniformName, float value) {
 		glUniform1f(glGetUniformLocation(shaderProgram, uniformName), value);
 	}
+	void bindingUniformBlock(const char* blockName, glInt blockIndex) {
+		glInt uniformBlockIndex = glGetUniformBlockIndex(shaderProgram, "Matrices");
+		glUniformBlockBinding(shaderProgram, uniformBlockIndex, blockIndex);
+	}	
 private:
-	glInt createProgram(glInt vertexShader, glInt fragmentShader) {
+	glInt createProgram() {
 		glInt shaderProgram;
 		shaderProgram = glCreateProgram();
 		glAttachShader(shaderProgram, vertexShader);
 		glAttachShader(shaderProgram, fragmentShader);
+		if(geometryShader != 0){
+			glAttachShader(shaderProgram, geometryShader);
+		}
 		glLinkProgram(shaderProgram);
 		glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
 		if (!success) {
@@ -87,11 +93,17 @@ private:
 		}
 		glDeleteShader(vertexShader);
 		glDeleteShader(fragmentShader);
+		if (geometryShader != 0) {
+			glDeleteShader(geometryShader);
+		}
 		return shaderProgram;
 	}
 
 	glInt createShader(int shaderType, const char* sourceName) {
 		//顶点着色器vertexShader
+		if (sourceName == "") {
+			return 0;
+		}
 		glInt vertexShader;
 		std::string vertexCode;
 		getFileString(sourceName, &vertexCode);

@@ -27,7 +27,31 @@ using namespace std;
 #include "mesh.h"
 #include "model.h"
 #include "controller.h"
+#include "vertex.h"
 #include "test.h"
+TextureCache textureCacheInst;
+GLenum glCheckError_(const char *file, int line)
+{
+	GLenum errorCode;
+	while ((errorCode = glGetError()) != GL_NO_ERROR)
+	{
+		std::string error;
+		switch (errorCode)
+		{
+		case GL_INVALID_ENUM:                  error = "INVALID_ENUM"; break;
+		case GL_INVALID_VALUE:                 error = "INVALID_VALUE"; break;
+		case GL_INVALID_OPERATION:             error = "INVALID_OPERATION"; break;
+		//case GL_STACK_OVERFLOW:                error = "STACK_OVERFLOW"; break;
+		//case GL_STACK_UNDERFLOW:               error = "STACK_UNDERFLOW"; break;
+		case GL_OUT_OF_MEMORY:                 error = "OUT_OF_MEMORY"; break;
+		case GL_INVALID_FRAMEBUFFER_OPERATION: error = "INVALID_FRAMEBUFFER_OPERATION"; break;
+		}
+		std::cout << error << " | " << file << " (" << line << ")" << std::endl;
+	}
+	return errorCode;
+}
+#define glCheckError() glCheckError_(__FILE__, __LINE__) 
+
 vector<glm::vec3> cubePositions = {
 	glm::vec3(0.0f,  0.0f,  0.0f),
 	glm::vec3(2.0f,  5.0f, -15.0f),
@@ -50,6 +74,7 @@ bool initCreateWindow(GLFWwindow** window) {
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
 	//glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 	*window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
 	if (*window == NULL)
@@ -64,7 +89,7 @@ bool initCreateWindow(GLFWwindow** window) {
 		std::cout << "Failed to initialize GLAD" << std::endl;
 		return false;
 	}
-	glViewport(0, 0, 800, 600);   //设置窗体坐标
+	glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);   //设置窗体坐标
 	glfwSetInputMode(*window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	return true;
 }
@@ -144,7 +169,8 @@ glInt createVerticesWithElements(glInt VAO) {
 glInt createVerticesWithArrays(glInt VAO, glInt* VBO) {
 //	glInt VBO;
 	// positions          // colors           // texture coords   //normal 
-	float vertices[] = {
+	vector<float> vertices = {
+	//float vertices[] = {
 	//	back
 		-0.5f,  0.5f, -1.0f,   1.0f, 1.0f, 0.0f,   1.0f, 1.0f,  0.0f, 0.0f, -1.0f, // top left   D'
 		-0.5f, -0.5f, -1.0f,   0.0f, 0.0f, 1.0f,   1.0f, 0.0f, 0.0f, 0.0f, -1.0f,  // bottom left C'
@@ -196,39 +222,11 @@ glInt createVerticesWithArrays(glInt VAO, glInt* VBO) {
 		0.5f, -0.5f, -1.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,  0.0f, -1.0f, 0.0f,// top left   B'
 		-0.5f, -0.5f, -1.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f, 0.0f, -1.0f, 0.0f, // bottom left C'
 	};
-
-	//生成缓存对象
-	glGenBuffers(1, VBO);
-	glGenVertexArrays(1, &VAO);
-
-	//绑定VAO
-	glBindVertexArray(VAO);
-
-	glBindBuffer(GL_ARRAY_BUFFER, *VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-	int offset = 0;
-	int step = 11;
-	// position attribute
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, step * sizeof(float), (void*)(0+offset));
-	glEnableVertexAttribArray(0);
-
-	// color attribute
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, step * sizeof(float), (void*)((3+offset) * sizeof(float)));
-	glEnableVertexAttribArray(1);
-
-	// texture coord attribute
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, step * sizeof(float), (void*)((6+offset) * sizeof(float)));
-	glEnableVertexAttribArray(2);
-
-	glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, step * sizeof(float), (void*)((8+offset) * sizeof(float)));
-	glEnableVertexAttribArray(3);
-
-	//glDrawArrays(GL_TRIANGLES, 0, 36);
-	return VAO;
+	vector<int> attribute = { 3,3,2,3 };
+	return createVertices(VAO, VBO, vertices, attribute);
 }
 glInt createFrameBufferVerticesWithArrays(glInt VAO, glInt* VBO) {
-	float vertices[] = { // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
+	vector<float> vertices = { // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
 		// positions   // texCoords
 		-1.0f,  1.0f,  0.0f, 1.0f,
 		-1.0f, -1.0f,  0.0f, 0.0f,
@@ -238,92 +236,12 @@ glInt createFrameBufferVerticesWithArrays(glInt VAO, glInt* VBO) {
 		1.0f, -1.0f,  1.0f, 0.0f,
 		1.0f,  1.0f,  1.0f, 1.0f
 	};
-
-	//生成缓存对象
-	glGenBuffers(1, VBO);
-	glGenVertexArrays(1, &VAO);
-
-	//绑定VAO
-	glBindVertexArray(VAO);
-
-	glBindBuffer(GL_ARRAY_BUFFER, *VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), &vertices, GL_STATIC_DRAW);
-
-	int offset = 0;
-	int step = 4;
-	// position attribute
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, step * sizeof(float), (void*)(0 + offset));
-	glEnableVertexAttribArray(0);
-
-	// texture coord attribute
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, step * sizeof(float), (void*)((2 + offset) * sizeof(float)));
-	glEnableVertexAttribArray(1);
-	//glDrawArrays(GL_TRIANGLES, 0, 36);
-	return VAO;
+	vector<int> attribute = { 2,2};
+	return createVertices(VAO, VBO, vertices, attribute);
 }
 
 glInt createSkyBoxVerticesWithArrays(glInt VAO, glInt* VBO) {
-	float skyboxVertices[] = {
-		// positions          
-		-1.0f,  1.0f, -1.0f,
-		-1.0f, -1.0f, -1.0f,
-		1.0f, -1.0f, -1.0f,
-		1.0f, -1.0f, -1.0f,
-		1.0f,  1.0f, -1.0f,
-		-1.0f,  1.0f, -1.0f,
-
-		-1.0f, -1.0f,  1.0f,
-		-1.0f, -1.0f, -1.0f,
-		-1.0f,  1.0f, -1.0f,
-		-1.0f,  1.0f, -1.0f,
-		-1.0f,  1.0f,  1.0f,
-		-1.0f, -1.0f,  1.0f,
-
-		1.0f, -1.0f, -1.0f,
-		1.0f, -1.0f,  1.0f,
-		1.0f,  1.0f,  1.0f,
-		1.0f,  1.0f,  1.0f,
-		1.0f,  1.0f, -1.0f,
-		1.0f, -1.0f, -1.0f,
-
-		-1.0f, -1.0f,  1.0f,
-		-1.0f,  1.0f,  1.0f,
-		1.0f,  1.0f,  1.0f,
-		1.0f,  1.0f,  1.0f,
-		1.0f, -1.0f,  1.0f,
-		-1.0f, -1.0f,  1.0f,
-
-		-1.0f,  1.0f, -1.0f,
-		1.0f,  1.0f, -1.0f,
-		1.0f,  1.0f,  1.0f,
-		1.0f,  1.0f,  1.0f,
-		-1.0f,  1.0f,  1.0f,
-		-1.0f,  1.0f, -1.0f,
-
-		-1.0f, -1.0f, -1.0f,
-		-1.0f, -1.0f,  1.0f,
-		1.0f, -1.0f, -1.0f,
-		1.0f, -1.0f, -1.0f,
-		-1.0f, -1.0f,  1.0f,
-		1.0f, -1.0f,  1.0f
-	};
-	//生成缓存对象
-	glGenBuffers(1, VBO);
-	glGenVertexArrays(1, &VAO);
-
-	//绑定VAO
-	glBindVertexArray(VAO);
-
-	glBindBuffer(GL_ARRAY_BUFFER, *VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
-
-	int offset = 0;
-	int step = 3;
-	// position attribute
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, step * sizeof(float), (void*)(0 + offset));
-	glEnableVertexAttribArray(0);
-	//glDrawArrays(GL_TRIANGLES, 0, 36);
-	return VAO;
+	return createCellCubeWithArrays(VAO, VBO);
 }
 
 
@@ -333,6 +251,12 @@ void useUniformMVP(Shader shaderProgram, glm::mat4& model, glm::mat4& view, glm:
 	shaderProgram.setMat4("view", view);
 	shaderProgram.setMat4("projection", projection);
 }
+
+void useUniformVP(Shader shaderProgram, glm::mat4& view, glm::mat4& projection) {
+	shaderProgram.setMat4("view", view);
+	shaderProgram.setMat4("projection", projection);
+}
+
 
 void createUniformMVP(Shader shaderProgram)
 {
@@ -352,10 +276,6 @@ void createUniformMVP(Shader shaderProgram)
 
 glm::vec3 aToVec3(float v[]) {
 	return glm::vec3(v[0], v[1], v[2]);
-}
-
-Shader* createNewShader(const char* vs, const char* fs) {
-	return new Shader(vs, fs);
 }
 
 void cacheAllImage(TextureCache* inst) {

@@ -1,5 +1,10 @@
 #include "common.h"
+#include "skybox.h"
+#include "uniformbuffer.h"
+#include "instance.h"
+#include "antialias.h"
 #define NR_POINT_LIGHTS 4
+
 
 void processInput(GLFWwindow *window);
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods);
@@ -13,33 +18,26 @@ void doStencilTest();
 void doGrassShader();
 void doBlendShader();
 void doBlendTest();
-void doSkyBoxTest();
-
-void initShader(Shader* shader, const char* vs, const char* fs);
+//void doSkyBoxTest();
+void initShader(Shader* shader, const char* vs, const char* fs, const char* gs = "");
 glInt initFrameBufferTest(glInt* textureColorbuffer, glInt* rbo);
 void doFrameBufferTest(glInt frameBuffer);
 
 Shader programShader, lampShader, assimpShader, stencilShader, grassShader,
-		blendShader, screenShader, skyboxShader, skyObjectShader;
+		blendShader, screenShader, skyObjectShader, redShader,
+		geometryShader;
+
 Uniform dirlight, material, pointLights[4];
 Model assimpModel;
 glm::mat4 view, projection;
 glm::vec3 lightColor, objectColor;
-TextureCache textureCacheInst;
 
-vector<glInt> VAOs(3);
+vector<glInt> VAOs(10);
 glInt textureColorbuffer;
 bool bAssimp = false;
-glInt cubemapTexture;
+
 int main()
 {
-	bool bTest = false;
-	if (bTest) {
-		foo(5);
-		system("pause");
-		return 0;
-	}
-
 	GLFWwindow* window = NULL;
 	if (!initCreateWindow(&window))
 	{
@@ -48,79 +46,90 @@ int main()
 	glfwSetCursorPosCallback(window, mouse_callback);
 	glfwSetScrollCallback(window, scroll_callback);
 	glfwSetKeyCallback(window, key_callback);
-
-	glEnable(GL_DEPTH_TEST);
+	//glEnable(GL_DEPTH_TEST);
 	//glDepthMask(GL_FALSE); //禁止深度缓冲的写入
-	glDepthFunc(GL_LEQUAL);  //深度缓冲测试函数
-	glEnable(GL_STENCIL_TEST);
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	vector<std::string> faces{
-		"right.jpg",
-		"left.jpg",
-		"top.jpg",
-		"bottom.jpg",
-		"back.jpg",
-		"front.jpg"
-	};
-	cubemapTexture = loadCubemap(faces, "skybox");
+	//glDepthFunc(GL_LEQUAL);  //深度缓冲测试函数
+	//glEnable(GL_STENCIL_TEST);
+	//glEnable(GL_BLEND);
+	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+//	glGenTextures(-5, &textureColorbuffer);
+	//std::cout << glGetError() << std::endl; // 返回 1281 (非法值)
+//	glCheckError();
 
 //	glStencilMask(0xFF); // 每一位写入模板缓冲时都保持原样
 	//光照
 	lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
 	objectColor = glm::vec3(1.0f, 1.0f, 1.0f);
-	cacheAllImage(&textureCacheInst);
+	//cacheAllImage(&textureCacheInst);
 	//initShader(&programShader, "texture.vs", "texture.fs");
 	//initShader(&screenShader, "screen.vs", "screen.fs");
-	initShader(&skyboxShader, "skybox.vs", "skybox.fs");
+	//initShader(&skyboxShader, "skybox.vs", "skybox.fs");
 	//initShader(&skyObjectShader, "skyobject.vs", "skyobject.fs");
-	initShader(&assimpShader, "Assimp.vs", "Assimp.fs");
+	//initShader(&assimpShader, "Assimp.vs", "Assimp.fs");
 	//initShader(&lampShader, "texture.vs", "light.fs");
 	//initShader(&stencilShader, "texture.vs", "stencil.fs");
 	//initShader(&grassShader, "texture.vs", "discard.fs");
 	//initShader(&blendShader, "texture.vs", "blend.fs");
-	glInt rbo;
-	glInt frameBuffer = initFrameBufferTest(&textureColorbuffer, &rbo);
-	dirlight = Uniform();
+	//initShader(&geometryShader, "geometry.vs", "geometry.fs", "geometry.gs");
+	//initUniformBufferShader(&redShader);
+	
+	//glInt rbo;
+	//glInt frameBuffer = initFrameBufferTest(&textureColorbuffer, &rbo);
+	//dirlight = Uniform();
 
 	//顶点
-	vector<glInt>VBO(VAOs.size());
-	VAOs[0] = createVerticesWithArrays(VAOs[0], &VBO[0]);
-	VAOs[1] = createFrameBufferVerticesWithArrays(VAOs[1], &VBO[1]);
-	VAOs[2] = createSkyBoxVerticesWithArrays(VAOs[2], &VBO[2]);
-
+	//vector<glInt>VBO(VAOs.size());
+	//VAOs[0] = createVerticesWithArrays(VAOs[0], &VBO[0]);
+	//VAOs[1] = createFrameBufferVerticesWithArrays(VAOs[1], &VBO[1]);
+	//VAOs[2] = createSkyBoxVerticesWithArrays(VAOs[2], &VBO[2]);
+	//VAOs[3] = createPointsWithArrays(VAOs[3], &VBO[3]);
+	//initSkyBoxTest();
+	initAntiAlias();
 	//programShader.setFloat("material.shininess", 32.0f);
-	assimpShader.setFloat("material.shininess", 32.0f);
-
+	//assimpShader.setFloat("material.shininess", 32.0f);
+	//initInstanceTest();
 	//glEnable(GL_CULL_FACE);
 	//glCullFace(GL_BACK);
 	//glFrontFace(GL_CW);
-	glEnable(GL_DEPTH_TEST);
+	//glEnable(GL_DEPTH_TEST);
+	//glEnable(GL_PROGRAM_POINT_SIZE);
 	//glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);//这个只是用来进行测试的函数不是用来写入模版缓冲的函数
+	//initPlanetInstanceTest();
+	initAliaFrameBufferTest();
 	while (!glfwWindowShouldClose(window))
 	{
 		updateFrame();
 		processInput(window);
 		
 		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		
+
 		view = cameraInst.GetViewMatrix();
 		projection = glm::perspective(glm::radians(cameraInst.Zoom), aspectRatio, 0.1f, 100.0f);
+//		doShaderWithVAO("SkyBox", VAOs[2]);
+//		doShaderWithVAO("Geometry", VAOs[3]);
+		//glBindVertexArray(0);
 
+		//doUniformBufferShaderTest(VAOs[0], projection, view, &redShader);
 		//doFrameBufferTest(frameBuffer);
-		doSkyBoxTest();
+		//doSkyBoxTest(view, projection);
+		doAntiAlias(view, projection);
+		//doAliaFrameBufferTest(view, projection);
+		//doInstanceTest();
+		//doPlanetInstanceTest(view, projection);
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
-	for (int i = 0; i < VAOs.size(); i++)
-	{
-		if(VAOs[i] == 0){
-			break;
-		}
-		glDeleteVertexArrays(1, &VAOs[i]);
-		glDeleteBuffers(1, &VBO[i]);
-	}
+	//doPlanetInstanceEnd();
+	//for (int i = 0; i < VAOs.size(); i++)
+	//{
+	//	if (VAOs[i] == 0) {
+	//		break;
+	//	}
+	//	glDeleteVertexArrays(1, &VAOs[i]);
+	//	glDeleteBuffers(1, &VBO[i]);
+	//}
 
 	glfwTerminate();
 	return 0;
@@ -224,19 +233,11 @@ void doBlendShader() {
 	//绘制顺序很重要 原因深度缓冲影响导致的
 }
 
-void initShader(Shader* shader, const char* vs, const char* fs) {
-	shader->initShader(vs, fs);
+void initShader(Shader* shader, const char* vs, const char* fs, const char* gs) {
+	shader->initShader(vs, fs, gs);
 	shader->use();
 	createUniformMVP(*shader);
 	if (shader == &programShader) {
-		//此处应该做一个texture 管理器 以值做key textureID 为value
-		
-		//vector<string> name{ "container2.png", "container2_specular.png" };
-		//vector<string> textureName{ "material.diffuse", "material.specular" };
-		//textureCacheInst.cacheTexture("container2.png");
-		//textureCacheInst.getCacheTextureID("container2.png");
-		//createTexture(*shader, name, textureName);
-
 		programShader.setVec3("objectColor", objectColor);
 		programShader.setVec3("lightColor", lightColor);
 	}
@@ -262,6 +263,8 @@ void initShader(Shader* shader, const char* vs, const char* fs) {
 	}
 	else if (shader == &screenShader) {
 		screenShader.setInt("screenTexture", 0);
+	}
+	else if (shader == &geometryShader){
 	}
 }
 
@@ -387,6 +390,11 @@ void doSkyObjectShader() {
 	glDrawArrays(GL_TRIANGLES, 0, 36);
 }
 
+void doGeometryShader() {
+	geometryShader.use();
+	glDrawArrays(GL_POINTS, 0, 4);
+}
+
 void doShaderWithVAO(string shaderName, glInt vao) {
 	glBindVertexArray(vao);
 	if (shaderName.compare("Program") == 0) {
@@ -409,6 +417,9 @@ void doShaderWithVAO(string shaderName, glInt vao) {
 	}
 	else if (shaderName.compare("SkyObject") == 0) {
 		doSkyObjectShader();
+	}
+	else if (shaderName.compare("Geometry") == 0) {
+		doGeometryShader();
 	}
 	glBindVertexArray(0);
 }
@@ -435,6 +446,9 @@ void doBlendTest() {
 	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 glInt initFrameBufferTest(glInt* textureColorbuffer, glInt* rbo) {
+	initShader(&programShader, "texture.vs", "texture.fs");
+	initShader(&screenShader, "screen.vs", "screen.fs");
+
 	//生成帧缓冲 并绑定
 	glInt framebuffer;
 	glGenFramebuffers(1, &framebuffer);
@@ -444,7 +458,7 @@ glInt initFrameBufferTest(glInt* textureColorbuffer, glInt* rbo) {
 	//unsigned int texColorBuffer;
 	glGenTextures(1, textureColorbuffer);
 	glBindTexture(GL_TEXTURE_2D, *textureColorbuffer);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 800, 600, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	//glBindTexture(GL_TEXTURE_2D, 0);
@@ -455,7 +469,7 @@ glInt initFrameBufferTest(glInt* textureColorbuffer, glInt* rbo) {
 	//unsigned int rbo;
 	glGenRenderbuffers(1, rbo);
 	glBindRenderbuffer(GL_RENDERBUFFER, *rbo);
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, 800, 600);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, SCR_WIDTH, SCR_HEIGHT);
 	glBindRenderbuffer(GL_RENDERBUFFER, 0);
 	//将渲染缓冲对象绑定到对应的帧缓冲上
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, *rbo);
@@ -465,6 +479,7 @@ glInt initFrameBufferTest(glInt* textureColorbuffer, glInt* rbo) {
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	return framebuffer;
 }
+
 void doFrameBufferTest(glInt frameBuffer) {
 	glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
 	glEnable(GL_DEPTH_TEST);
@@ -485,8 +500,9 @@ void doFrameBufferTest(glInt frameBuffer) {
 	doShaderWithVAO("Screen", VAOs[1]);
 }
 
-void doSkyBoxTest() {
-	//doShaderWithVAO("SkyObject", VAOs[0]);
-	doAssimpShader();
-	doShaderWithVAO("SkyBox", VAOs[2]);
-}
+//void doSkyBoxTest() {
+//	//doShaderWithVAO("SkyObject", VAOs[0]);
+//	doAssimpShader();
+//	doShaderWithVAO("SkyBox", VAOs[2]);
+//}
+
